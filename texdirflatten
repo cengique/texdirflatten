@@ -129,6 +129,8 @@ sub parseTeX {
     print "Found input directory: $inputdir\n";
   }
 
+  print "Parsing '$file' in directory '$inputdir'\n";
+
   # Default value
   #$inputdir = './' if (-z $inputdir);
 
@@ -206,7 +208,7 @@ sub parseTeX {
 	  }
 	}
 	$texfiles{$flat} = $long;
-	parseTeX($long, $inputdir); #later
+	parseTeX($long, basedir($long)); #later
 	
       }
     }
@@ -234,6 +236,18 @@ sub popfile {
 
   #print "Popping $file... split: @a ($#a), pop: " . pop(@a) . "\n";
   pop @a;
+}
+
+sub basedir {
+  my $file = shift (@_);
+
+  my @a = split /\//, $file;
+
+  #print "Popping $file... split: @a ($#a), pop: " . pop(@a) . "\n";
+  pop @a;			# remove file part
+  my $basedir = join('/', @a);		# combine the rest with /'s
+  $basedir .= '/' if (! $basedir =~ /^$/);		# add a trailing / if not empty
+  $basedir;
 }
 
 # get the bibliography files
