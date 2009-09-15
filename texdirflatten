@@ -1,5 +1,17 @@
 #! /usr/bin/env perl
 
+# $Id$
+
+# Use:
+# $ perldoc texdirflatten
+# to see embedded documentation. Alternatively, you can create manual
+# or HTML pages using pod2man and pod2html.
+
+# TODO:
+#
+# - parse BIBINPUTS environment variable and search figures and such
+# there as well.
+
 =pod
 
 =head1 NAME
@@ -86,8 +98,8 @@ my %texfiles;
 
 # GetOpt::Long::
 my $result = GetOptions ("output|o=s" => \$outputdir,
-				       "file|f=s" => \$file,
-				       "help|?" => \$help );
+			 "file|f=s" => \$file,
+			 "help|?" => \$help );
 
 
 #print "help: $help, file: $file\n";
