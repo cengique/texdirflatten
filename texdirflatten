@@ -201,7 +201,7 @@ sub parseTeX {
     s/\\(input|include){([^}]*)}/"\\${1}{" .
   ($popped = popfile($2) and push @longs, $2 and push @flats,$popped and $popped)  . "}"/egm;
 
-  if ($#flats > 0) {
+  if ($#flats > -1) {
     #print "Found " . scalar @longs . " items on line: '@flats'.\n";
 
     my ($long, $flat);
