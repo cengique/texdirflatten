@@ -36,11 +36,16 @@ Run without parameters to see usage.
 
 =over
 
-=item B<-f> I<input.tex>
+=item B<--file>, B<-f> I<input.tex>
 
 Specifies input (La)TeX file.
 
-=item B<-o> I<outputdir>
+=item B<--onetex>, B<-1>
+
+If specified, produces a single TeX file by expanding all \input and
+\include commands in place.
+
+=item B<--output>, B<-o> I<outputdir>
 
 Directory to collect all files. B<texdirflatten> will copy each source
 file, graphics and bibliography file to this directory. It will be
@@ -88,10 +93,12 @@ use Getopt::Long qw(GetOptions);
 use Pod::Usage;
 use strict;
 use warnings;
+use re 'eval';
 
 # Global
-my $outputdir   = "flat";
-my $file;
+my $outputdir   = "flat";	# Output directory
+my $file;			# File to read
+my $onetex = 0;			# Indicates all input and include commands be expanded
 my $help;
 
 # parse helpers
@@ -99,6 +106,7 @@ my %texfiles;
 
 # GetOpt::Long::
 my $result = GetOptions ("output|o=s" => \$outputdir,
+			 "onetex|1" => \$onetex,
 			 "file|f=s" => \$file,
 			 "help|?" => \$help );
 
@@ -122,19 +130,22 @@ pod2usage( -section => "SYNOPSIS") if ($file eq "" || $help);
 system "mkdir $outputdir" if (not -d $outputdir);
 
 # start recursing
-parseTeX($file, "", popfile($file));
+parseTeX($file, "", popfile($file), 0);
 
 sub parseTeX {
   my $file = shift;
   my $inputdir = shift;
   my $outfile = "$outputdir/" . shift;
+  my $level = shift;
+
+  # Add a proper TeX suffix if it's missing
+  $outfile .= '.tex' if ! ($outfile =~ /\.tex\s*$/i );
 
   my @flats;
   my @longs;
   my $popped;
 
   open my $FILE, $file or die "Cannot find file to read $file\n";
-  open my $COPY, ">$outfile" or die "Cannot write file $outfile\n";
 
   # Read to whole file first, and then scan for regexps
   my $contents = "";
@@ -169,7 +180,7 @@ sub parseTeX {
 
   $contents =~
     s/\\includegraphics(\[[^\]]*\])?\{([^}]*)\}
-      (?{ $::popped = flattenfilename($2, ++$::filecount);
+      (?{ $::popped = flattenfilename($2);
 	push @::longs, $2; push @::flats, $::popped })
      /\\includegraphics$1\{$::popped\}/gmx;
 
@@ -211,13 +222,17 @@ sub parseTeX {
     }
   }
 
+  # Must do bibs before input commands because, when expanded, they
+  # add new bibs inside.
+  replacebibs(\$contents, $inputdir);
+
   # an \input or \include statement
   @flats = ();
   @longs = ();
   $contents =~
     s/\\(input|include)\{([^}]*)\}/"\\${1}\{" .
-  ($popped = flattenfilename($2, ++$::filecount) and push @longs, $2 and push @flats,$popped and $popped)
-  . "\}"/egm;
+      ($popped = flattenfilename($2) and push @longs, $2 and push @flats,$popped and $popped)
+	. "\}"/egm;
 
   if ($#flats > -1) {
     #print "Found " . scalar @longs . " items on line: '@flats'.\n";
@@ -235,27 +250,38 @@ sub parseTeX {
 	    $long = $inputdir . $long;
 	  } elsif (-r "$long.tex") {
 	    $long .= '.tex';
-	    $flat .= '.tex';
 	  }
 	}
 	$texfiles{$flat} = $long;
-	parseTeX($long, basedir($long), $flat); #later
+	my $newcontents = parseTeX($long, basedir($long), $flat, $level + 1); #later
+	if ( $onetex ) {
+	  # If specified, expand inclusion directives
+	  die "Failed to find input/include to expand for '$flat'!\n"
+	    if (! ( $contents =~
+		s/\\(input|include) \{ \Q$flat\E \} 
+                  (?{ print "===Found \\$1\{$flat\} to expand.\n" if $DEBUG; })
+		  / ($1 eq 'include' ? '\\clearpage\n' : '') . "$newcontents"/gxem ) );
+	}
       }
     }
   }
 
-  replacebibs(\$contents, $inputdir);
   #print "Writing to \"$outfile\"\n" .
   #  "----------------------------------------\n" .
   #  "$contents\n" .
   #  "----------------------------------------\n";
 
-  # write to flat copy
-  print $COPY $contents;
+  if (! $onetex || $level == 0) {  # do output at zero recurse level
+    # open flat output file
+    open my $COPY, ">$outfile" or die "Cannot write file $outfile\n";
 
+    # write to flat copy
+    print $COPY $contents;
 
-  close $COPY;
-
+    close $COPY;
+  } else {
+    return $contents;
+  }
 }
 
 # Return everything after the last /
@@ -271,16 +297,15 @@ sub popfile {
 # Make a new file by flattening directory names
 sub flattenfilename {
   local $_ = shift;
-  my $filecount = shift;
 
   # convert slashes to pluses
   tr|/|+|;
 
   # add a unique number at the beginning so files don't start with a
   # dot
-  $_ = sprintf("%03d_", $filecount) . "$_";
+  $_ = sprintf("%03d_", ++$::filecount) . "$_";
 
-  print "===Flattening file '$_'\n" if $DEBUG;
+  print "===Flattened file to '$_'\n" if $DEBUG;
 
   return $_;
 }
@@ -318,7 +343,7 @@ sub replacebibs {
       (?{ # for each word do:
 	  #local (@_flats, @_longs, @_refs);
           #print "Word: \"$+\", "; 
-          $popped = flattenfilename($+, ++$::filecount); push @::longs, $+;
+          $popped = flattenfilename($+); push @::longs, $+;
           push @::flats,$popped; push @::refs, $popped;
         }) )+ \s* }
       (?{ #print "\n+++ $#::flats; $#::refs; $#::longs\n";
