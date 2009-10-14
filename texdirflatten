@@ -87,6 +87,7 @@ package texdirflatten;
 use Getopt::Long qw(GetOptions);
 use Pod::Usage;
 use strict;
+use warnings;
 
 # Global
 my $outputdir   = "flat";
@@ -101,6 +102,13 @@ my $result = GetOptions ("output|o=s" => \$outputdir,
 			 "file|f=s" => \$file,
 			 "help|?" => \$help );
 
+# regexp for none or an even number of backslashes (\):
+my $unescaped =
+      '(?<! \\\\)(?(?= \\\\) (?: \\\\\\\\)* )?';
+
+# counter for files translated (like LyX does)
+$::filecount = 0;
+my $DEBUG = 1;
 
 #print "help: $help, file: $file\n";
 
@@ -114,18 +122,18 @@ pod2usage( -section => "SYNOPSIS") if ($file eq "" || $help);
 system "mkdir $outputdir" if (not -d $outputdir);
 
 # start recursing
-parseTeX($file, "");
+parseTeX($file, "", popfile($file));
 
 sub parseTeX {
   my $file = shift;
   my $inputdir = shift;
+  my $outfile = "$outputdir/" . shift;
 
   my @flats;
   my @longs;
   my $popped;
 
   open my $FILE, $file or die "Cannot find file to read $file\n";
-  my $outfile = "$outputdir/" . popfile($file);
   open my $COPY, ">$outfile" or die "Cannot write file $outfile\n";
 
   # Read to whole file first, and then scan for regexps
@@ -134,6 +142,12 @@ sub parseTeX {
     $contents = $contents . $_;
   }
   close $FILE;
+
+  ## First, remove comments so that input commands inside are ignored.
+  # Also remove trailing newline and all whitespace at the beginning
+  # of the following line like TeX does it. Only for %'s following
+  # the proper backslash pattern.
+  $contents =~ s/( $unescaped )\%.*?\n[ \t]*/$1/gx;
 
   # Look for graphics include statement
   if ($contents =~ /\\input\@path{{([^}]*)}}/) {
@@ -149,26 +163,31 @@ sub parseTeX {
   # three cases: graphics, inputs and bibs
 
   # an \includegraphics statement
-  @flats = ();
-  @longs = ();
+  @::flats = ();
+  @::longs = ();
+  #$::popped = "";
 
-  $contents =~ 
-    s/\\includegraphics(\[[^\]]*\])?\{([^}]*)\}/"\\includegraphics" . $1 .
-  "{" . ($popped = popfile($2) and push @longs, $2 and push @flats,$popped and $popped) . "}"/egm;
+  $contents =~
+    s/\\includegraphics(\[[^\]]*\])?\{([^}]*)\}
+      (?{ $::popped = flattenfilename($2, ++$::filecount);
+	push @::longs, $2; push @::flats, $::popped })
+     /\\includegraphics$1\{$::popped\}/gmx;
 
-  if ($#flats > -1) {
+  if ($#::flats > -1) {
     my ($long, $flat);
 
-    foreach $long (@longs) {
-      $flat = shift @flats;
-      print "Found graphics: '$long'\n";
+    foreach $long (@::longs) {
+      $flat = shift @::flats;
 
       # convert LyX directory dots
       $long =~ s/\\lyxdot /./g;
+      $flat =~ s/\\lyxdot /./g;
 
-      my $epsfile = $inputdir . $long;
+      print "Found graphics: '$long'\n";
 
-      if (system("cp $epsfile.eps $outputdir/$flat.eps") != 0) {
+      my $epsfile = "$inputdir$long";
+
+      if (system("cp ${epsfile}.eps $outputdir/$flat.eps") != 0) {
 	print "Cannot find $epsfile.eps!\n";
 	# if from figures dir, copy the EPS file as well
 	if ($long =~ /figures\//) {
@@ -190,16 +209,15 @@ sub parseTeX {
       }
 
     }
-    my $long = $2;
-
   }
 
   # an \input or \include statement
   @flats = ();
   @longs = ();
-  $contents =~ 
-    s/\\(input|include){([^}]*)}/"\\${1}{" .
-  ($popped = popfile($2) and push @longs, $2 and push @flats,$popped and $popped)  . "}"/egm;
+  $contents =~
+    s/\\(input|include)\{([^}]*)\}/"\\${1}\{" .
+  ($popped = flattenfilename($2, ++$::filecount) and push @longs, $2 and push @flats,$popped and $popped)
+  . "\}"/egm;
 
   if ($#flats > -1) {
     #print "Found " . scalar @longs . " items on line: '@flats'.\n";
@@ -217,11 +235,11 @@ sub parseTeX {
 	    $long = $inputdir . $long;
 	  } elsif (-r "$long.tex") {
 	    $long .= '.tex';
+	    $flat .= '.tex';
 	  }
 	}
 	$texfiles{$flat} = $long;
-	parseTeX($long, basedir($long)); #later
-	
+	parseTeX($long, basedir($long), $flat); #later
       }
     }
   }
@@ -248,6 +266,23 @@ sub popfile {
 
   #print "Popping $file... split: @a ($#a), pop: " . pop(@a) . "\n";
   pop @a;
+}
+
+# Make a new file by flattening directory names
+sub flattenfilename {
+  local $_ = shift;
+  my $filecount = shift;
+
+  # convert slashes to pluses
+  tr|/|+|;
+
+  # add a unique number at the beginning so files don't start with a
+  # dot
+  $_ = sprintf("%03d_", $filecount) . "$_";
+
+  print "===Flattening file '$_'\n" if $DEBUG;
+
+  return $_;
 }
 
 sub basedir {
@@ -277,13 +312,13 @@ sub replacebibs {
   $" = ',';			# set list item separator
   # search for \bibliography statements
   $$contentsref =~
-    s/\\bibliography(\[[^\]]*\])? { 
+    s/\\bibliography(\[[^\]]*\])? {
       (?{ @::refs = (); #print "Found bibliography!\n"; #initialize ref list
         }) (?: \s* ([^}, ]+)(?=[,}]),?
       (?{ # for each word do:
 	  #local (@_flats, @_longs, @_refs);
           #print "Word: \"$+\", "; 
-          $popped = popfile($+); push @::longs, $+;
+          $popped = flattenfilename($+, ++$::filecount); push @::longs, $+;
           push @::flats,$popped; push @::refs, $popped;
         }) )+ \s* }
       (?{ #print "\n+++ $#::flats; $#::refs; $#::longs\n";
@@ -294,7 +329,7 @@ sub replacebibs {
       #print "\n*** $#::flats; $#::refs; $#::longs\n";
   $" = ' ';			# restore list item separator
 
-  if ($#::flats > 0) {
+  if ($#::flats > -1) {
     #print "Found " . scalar @::longs . " items on line: '@::flats'.\n";
 
     my ($long, $flat);
