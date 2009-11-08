@@ -21,7 +21,7 @@ single output directory -- i.e., flattens its hierarchy.
 
 =head1 SYNOPSIS
 
-texdirflatten -f input.tex [-o outputdir]
+texdirflatten [-1|--onetex] [-f|--file input.tex] [-o outputdir]
 
 =head1 DESCRIPTION
 
@@ -260,7 +260,7 @@ sub parseTeX {
 	    if (! ( $contents =~
 		s/\\(input|include) \{ \Q$flat\E \} 
                   (?{ print "===Found \\$1\{$flat\} to expand.\n" if $DEBUG; })
-		  / ($1 eq 'include' ? '\\clearpage\n' : '') . "$newcontents"/gxem ) );
+		  / ($1 eq 'include' ? "\\clearpage\n" : '') . "$newcontents"/gxem ) );
 	}
       }
     }
