@@ -97,7 +97,7 @@ use re 'eval';
 
 # Global
 my $outputdir   = "flat";	# Output directory
-my $file;			# File to read
+my $file = "";			# File to read
 my $onetex = 0;			# Indicates all input and include commands be expanded
 my $help;
 
@@ -194,30 +194,13 @@ sub parseTeX {
       $long =~ s/\\lyxdot /./g;
       $flat =~ s/\\lyxdot /./g;
 
-      print "Found graphics: '$long'\n";
+      print "Looking for graphics: '$long'\n";
 
-      my $epsfile = "$inputdir$long";
+      my @exts = ("", ".eps", ".pdf", ".pstex");
+      my @dirs = ("", "$inputdir", $inputdir . '../figures/');
 
-      if (system("cp ${epsfile}.eps $outputdir/$flat.eps") != 0) {
-	print "Cannot find $epsfile.eps!\n";
-	# if from figures dir, copy the EPS file as well
-	if ($long =~ /figures\//) {
-	  $epsfile = $inputdir . $long;
-	} else {
-	  $epsfile = $inputdir . '../figures/' . $long;
-	}
-
-	if (system("cp $epsfile.eps $outputdir/$flat.eps") != 0) {
-	  print "Cannot find $epsfile.eps!\n";
-	  if (system("cp $epsfile.pstex $outputdir/$flat.eps") != 0) {
-	    die "Cannot find figure file '$epsfile'";
-	  } else {
-	    print "Found: '$epsfile.pstex'\n";
-	  }
-	}
-      } else {
-	print "Found: '$epsfile.pstex'\n";
-      }
+      seekfile($long, "$flat.eps", ["", ".eps", ".pdf", ".pstex"], 
+	       ["", "$inputdir", $inputdir . '../figures/']);
 
     }
   }
@@ -281,6 +264,27 @@ sub parseTeX {
     close $COPY;
   } else {
     return $contents;
+  }
+}
+
+# Look for file to copy
+sub seekfile {
+    my ($file, $dest, $exts, $dirs) = @_;
+    my @exts = @$exts;
+    my @dirs = @$dirs;
+    
+  OUT: foreach my $dir (@dirs) {
+      foreach my $ext (@exts) {
+	  my $tryfile = "$dir$file$ext";
+	  if (-r $tryfile) {
+	      if (system("cp $tryfile $outputdir/$dest") != 0) {
+		  die "Cannot copy $tryfile!\n";
+	      }
+	      # If we found it, then get out of the loop
+	      print "Found: '$tryfile'\n";
+	      last OUT;
+	  }
+      }
   }
 }
 
@@ -367,11 +371,8 @@ sub replacebibs {
       # convert LyX directory dots
       $long =~ s/\\lyxdot /./g;
 
-      my $bibfile = $inputdir . $long;
-
-      if (system("cp $bibfile.bib $outputdir/$flat.bib") != 0) {
-	die "Cannot find $bibfile.bib!\n";
-      }
+      seekfile($long, "$flat.bib", [".bib"], 
+	       ["", "$inputdir"]);
     }
   }
 }
