@@ -65,8 +65,6 @@ it under the same terms as Perl itself.
 
 =cut
 
-# $Id$
-
 # TODO:
 #
 # - parse BIBINPUTS environment variable and search figures and such
