@@ -118,13 +118,6 @@ my $unescaped =
 $::filecount = 0;
 my $DEBUG = 1;
 
-#print "help: $help, file: $file\n";
-
-#print "poop: " . popfile('slkjs/lkjlsjd/saa.abc');
-#{
-#  print ;
-#}
-
 pod2usage( -section => "SYNOPSIS") if ($file eq "" || $help);
 
 system "mkdir $outputdir" if (not -d $outputdir);
@@ -161,7 +154,7 @@ sub parseTeX {
   $contents =~ s/( $unescaped )\%.*?\n[ \t]*/$1/gx;
 
   # Look for graphics include statement
-  if ($contents =~ /\\input\@path{{([^}]*)}}/) {
+  if ($contents =~ /\\input\@path\{\{([^}]*)\}\}/) {
     $inputdir = $1;
     print "Found input directory: $inputdir\n";
   }
