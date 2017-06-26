@@ -1,16 +1,9 @@
 #! /usr/bin/env perl
 
-# $Id$
-
 # Use:
 # $ perldoc texdirflatten
 # to see embedded documentation. Alternatively, you can create manual
 # or HTML pages using pod2man and pod2html.
-
-# TODO:
-#
-# - parse BIBINPUTS environment variable and search figures and such
-# there as well.
 
 =pod
 
@@ -75,7 +68,7 @@ Cengiz Gunay <cengique<AT>users.sf.net>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyleft 2003-2009, Cengiz Gunay
+Copyleft 2003-2017, Cengiz Gunay
 
 This library is free software; you may redistribute it and/or modify
 it under the same terms as Perl itself.
