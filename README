@@ -4,6 +4,7 @@ NAME
 
 SYNOPSIS
     texdirflatten [-1|--onetex] [-f|--file input.tex] [-o outputdir]
+    [-?|--help]
 
 DESCRIPTION
     It parses the source file, following its included children (La)TeX files
@@ -23,6 +24,9 @@ OPTIONS
         file, graphics and bibliography file to this directory. It will be
         created if it is unexistent. If unspecified, it defaults to "flat/".
 
+    --help, -?
+        Show this manual page.
+
 EXAMPLES
     The following example scans "manuscript.tex" in the current directory
     and gathers it and all its components in the "submit_01/" directory:
@@ -32,6 +36,10 @@ EXAMPLES
 CAVEATS
     Please take backups before running this command. No warranties
     whatsoever provided.
+
+    You may need to run "epstopdf" on EPS files if you are using "pdflatex":
+
+     $ for i in *.eps; do epstopdf $i; done
 
 BUGS
     Bug reports and patches are welcome.

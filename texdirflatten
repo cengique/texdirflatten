@@ -14,7 +14,7 @@ single output directory -- i.e., flattens its hierarchy.
 
 =head1 SYNOPSIS
 
-texdirflatten [-1|--onetex] [-f|--file input.tex] [-o outputdir]
+texdirflatten [-1|--onetex] [-f|--file input.tex] [-o outputdir] [-?|--help]
 
 =head1 DESCRIPTION
 
@@ -44,6 +44,10 @@ Directory to collect all files. B<texdirflatten> will copy each source
 file, graphics and bibliography file to this directory. It will be
 created if it is unexistent. If unspecified, it defaults to C<flat/>.
 
+=item B<--help>, B<-?>
+
+Show this manual page.
+
 =back
 
 =head1 EXAMPLES
@@ -57,6 +61,10 @@ and gathers it and all its components in the C<submit_01/> directory:
 
 Please take backups before running this command. No warranties
 whatsoever provided.
+
+You may need to run C<epstopdf> on EPS files if you are using C<pdflatex>:
+
+ $ for i in *.eps; do epstopdf $i; done
 
 =head1 BUGS
 
@@ -111,7 +119,9 @@ my $unescaped =
 $::filecount = 0;
 my $DEBUG = 1;
 
-pod2usage( -section => "SYNOPSIS") if ($file eq "" || $help);
+pod2usage( -verbose => 2 ) if ($help);
+
+pod2usage( -section => "SYNOPSIS") if ($file eq "");
 
 system "mkdir $outputdir" if (not -d $outputdir);
 
@@ -263,7 +273,11 @@ sub seekfile {
       foreach my $ext (@exts) {
 	  my $tryfile = "$dir$file$ext";
 	  if (-r $tryfile) {
-	      if (system("cp $tryfile $outputdir/$dest") != 0) {
+	      # add the extension to $dest only if it hasn't any dots
+	      my $dext = '';
+	      $dext = $ext if (! $dest =~ /\./); 
+	      
+	      if (system("cp $tryfile $outputdir/$dest$dext") != 0) {
 		  die "Cannot copy $tryfile!\n";
 	      }
 	      # If we found it, then get out of the loop
@@ -288,8 +302,9 @@ sub popfile {
 sub flattenfilename {
   local $_ = shift;
 
-  # convert slashes to pluses
+  # convert slashes to pluses, dots to Xs
   tr|/|+|;
+  tr|\.|X|;
 
   # add a unique number at the beginning so files don't start with a
   # dot
