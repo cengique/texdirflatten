@@ -5,6 +5,8 @@
 # to see embedded documentation. Alternatively, you can create manual
 # or HTML pages using pod2man and pod2html.
 
+# Version 1.2 - 2017/06/26
+
 =pod
 
 =head1 NAME
