@@ -1,6 +1,9 @@
 NAME := texdirflatten
-VERSION := v$(shell grep '^\# Version' ${NAME} | cut -d\  -f3)
+VERSION := v$(shell grep 'version = ' ${NAME} | cut -d\" -f2)
 VERSTR = ${NAME}-${VERSION}
+
+version:
+	echo "Version: " ${VERSION}
 
 doc:
 	pod2man --release "${VERSTR}" ${NAME} > ${NAME}.1
@@ -12,5 +15,5 @@ dist:
 	cd distdir && zip -r ../${VERSTR}.zip ${NAME}/
 
 clean:
-	rm *~ ${VERSTR}.zip
+	rm *~ ${VERSTR}.zip || true
 	rm -rf distdir/${NAME}/
