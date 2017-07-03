@@ -133,7 +133,7 @@
 .\" ========================================================================
 .\"
 .IX Title "TEXDIRFLATTEN 1"
-.TH TEXDIRFLATTEN 1 "2017-06-27" "texdirflatten-v1.2" "User Contributed Perl Documentation"
+.TH TEXDIRFLATTEN 1 "2017-07-03" "texdirflatten-v" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -143,7 +143,8 @@ texdirflatten \- Collects all components of a (La)TeX file in a
 single output directory \-\- i.e., flattens its hierarchy.
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
-texdirflatten [\-1|\-\-onetex] [\-f|\-\-file input.tex] [\-o outputdir] [\-?|\-\-help]
+texdirflatten [\-1|\-\-onetex] [\-f|\-\-file input.tex] [\-o outputdir] 
+    	      [\-\-imgexts .ext1,.ext2,...] [\-\-debug] [\-V|\-\-version] [\-?|\-\-help]
 .SH "DESCRIPTION"
 .IX Header "DESCRIPTION"
 It parses the source file, following its included children (La)TeX
@@ -163,6 +164,20 @@ If specified, produces a single TeX file by expanding all \einput and
 Directory to collect all files. \fBtexdirflatten\fR will copy each source
 file, graphics and bibliography file to this directory. It will be
 created if it is unexistent. If unspecified, it defaults to \f(CW\*(C`flat/\*(C'\fR.
+.IP "\fB\-\-imgexts\fR \fI.ext1,.ext2[,...]\fR" 4
+.IX Item "--imgexts .ext1,.ext2[,...]"
+Prepends to the prioritized list of image extensions to search when
+trying to find the image to copy to output folder. The first file with
+the extension found will be copied and search stopped. Default order
+is \f(CW"", ".eps", ".pdf", ".pstex"\fR (note that it includes files with
+no extension). If using pdflatex, one may want to add \s-1PDF\s0 before \s-1EPS\s0
+with \f(CW\*(C`\-\-imgexts .pdf\*(C'\fR. Don't forget the dot before the extension!
+.IP "\fB\-\-debug\fR" 4
+.IX Item "--debug"
+Enables copious amounts of debugging output \- useful if something is going wrong.
+.IP "\fB\-\-version\fR, \fB\-V\fR" 4
+.IX Item "--version, -V"
+Displays the current version number and the usage and exits.
 .IP "\fB\-\-help\fR, \fB\-?\fR" 4
 .IX Item "--help, -?"
 Show this manual page.
