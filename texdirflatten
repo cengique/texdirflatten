@@ -19,9 +19,12 @@ texdirflatten [-1|--onetex] [-f|--file input.tex] [-o outputdir]
 
 =head1 DESCRIPTION
 
-It parses the source file, following its included children (La)TeX
-files recursively, to collect together its components, such as
-graphics and BiBTeX bibliography files in different directories.
+This Perl script parses a LaTeX file recursively, scanning all child
+files, and collects details of any included and other data files, such
+as graphics and BiBTeX bibliography files. These component files, are
+then all put into a single directory (thus "flattening" the document's
+directory tree). This is useful in distributing manuscripts to
+collaborators or in submitting to journals.
 
 =for comment
 Run without parameters to see usage.
@@ -102,11 +105,9 @@ it under the same terms as Perl itself.
 =cut
 
 # TODO:
-#
 # - parse BIBINPUTS environment variable and search figures and such
 # there as well.
-# - Add a debug switch and disable by deafult
-# - Allow specifying priority graphics file extensions to copy
+# - also copy bibtex style file
 
 package texdirflatten;
 

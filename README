@@ -7,9 +7,12 @@ SYNOPSIS
     [--imgexts .ext1,.ext2,...] [--debug] [-V|--version] [-?|--help]
 
 DESCRIPTION
-    It parses the source file, following its included children (La)TeX files
-    recursively, to collect together its components, such as graphics and
-    BiBTeX bibliography files in different directories.
+    This Perl script parses a LaTeX file recursively, scanning all child
+    files, and collects details of any included and other data files, such
+    as graphics and BiBTeX bibliography files. These component files, are
+    then all put into a single directory (thus "flattening" the document's
+    directory tree). This is useful in distributing manuscripts to
+    collaborators or in submitting to journals.
 
 OPTIONS
     --file, -f *input.tex*
