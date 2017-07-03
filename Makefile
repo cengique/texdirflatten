@@ -12,6 +12,5 @@ dist:
 	cd distdir && zip -r ../${VERSTR}.zip ${NAME}/
 
 clean:
-	rm *~
-	rm ${VERSTR}.zip
+	rm *~ ${VERSTR}.zip
 	rm -rf distdir/${NAME}/
