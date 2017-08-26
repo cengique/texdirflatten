@@ -208,7 +208,7 @@ sub parseTeX {
   #$::popped = "";
 
   $contents =~
-    s/\\includegraphics(\[[^\]]*\])?\{([^}]*)\}
+    s/\\includegraphics(\[[^\]]*\])?\{(?:(\{[^}]*\}\.\w+)?|([^}]*))\}
       (?{ $::popped = flattenfilename($2);
 	push @::longs, $2; push @::flats, $::popped })
      /\\includegraphics$1\{$::popped\}/gmx;
@@ -300,13 +300,16 @@ sub seekfile {
     my ($file, $dest, $exts, $dirs) = @_;
     my @exts = @$exts;
     my @dirs = @$dirs;
+
+    # strip the {} from files while searching/copying
+    $file =~ tr|{}||d;
+    $dest =~ tr|{}||d;
     
   OUT: foreach my $dir (@dirs) {
       foreach my $ext (@exts) {
 	  my $tryfile = "$dir$file$ext";
 	  if (-r $tryfile) {
-	      # add the extension to $dest only if it hasn't have any dots
-	      #(! ($dest =~ /\./)) ? $ext : ""; => better not to have this
+	      # first extension is empty, so check if file exists as is
 	      my $dext = $ext; 
 	      
 	      if (system("cp $tryfile $outputdir/$dest$dext") != 0) {
@@ -334,13 +337,16 @@ sub popfile {
 sub flattenfilename {
   local $_ = shift;
 
-  # convert slashes to pluses, dots to Xs
+  # convert slashes to pluses
   tr|/|+|;
-  tr|\.|X|;
 
   # add a unique number at the beginning so files don't start with a
-  # dot
-  $_ = sprintf("%03d_", ++$::filecount) . "$_";
+  # dot. Insert it inside {} if exists
+  if (substr($_, 0, 1) eq "{") {
+      $_ = '{' . sprintf("%03d_", ++$::filecount) . substr($_, 1);
+  } else {
+      $_ = sprintf("%03d_", ++$::filecount) . "$_";
+  }  
 
   print "===Flattened file to '$_'\n" if $DEBUG;
 
